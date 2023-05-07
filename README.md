@@ -185,3 +185,64 @@ $ kubectl run -it --rm busybox --image=busybox --restart=Never --command -- wget
 Hello, World!
 pod "busybox" deleted
 ```
+
+## Set hello text
+Add the `spec.text` field to set the HELLO_TEXT enviornment variable of the
+[Hello World HTTP](https://github.com/brusdev/hello-world-http) container:
+```
+Env: []corev1.EnvVar{
+    {
+        Name:  "HELLO_TEXT",
+        Value: helloworld.Spec.Text,
+    },
+},
+```
+Create a HelloWorld CR with a custom text using the kubectl:
+```
+$ kubectl apply -f - <<EOF
+apiVersion: examples.brus.dev/v1alpha1
+kind: HelloWorld
+metadata:
+  name: helloworld-sample
+spec:
+  size: 1
+  text: Hello, brusdev!
+EOF
+```
+Ensure that the helloworld operator creates the deployment with the `HELLO_TEXT` enviornment variable:
+```
+$ kubectl get deployment helloworld-sample -o jsonpath-as-json={.spec.template.spec.containers}
+[
+    [
+        {
+            "env": [
+                {
+                    "name": "HELLO_TEXT",
+                    "value": "Hello, brusdev!"
+                }
+            ],
+            "image": "quay.io/brusdev/hello-world-http:latest",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "helloworld",
+            "resources": {},
+            "securityContext": {
+                "allowPrivilegeEscalation": false,
+                "capabilities": {
+                    "drop": [
+                        "ALL"
+                    ]
+                },
+                "runAsNonRoot": true
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+        }
+    ]
+]
+```
+Test the deployment and the service with a custom text using busybox:
+```
+$ kubectl run -it --rm busybox --image=busybox --restart=Never --command -- wget -q -O - helloworld-sample:8080
+Hello, brusdev!
+pod "busybox" deleted
+```

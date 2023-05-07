@@ -35,6 +35,8 @@ type HelloWorldSpec struct {
 	// +kubebuilder:validation:Maximum=3
 	// +kubebuilder:validation:ExclusiveMaximum=false
 	Size int32 `json:"size,omitempty"`
+
+	Text string `json:"text,omitempty"`
 }
 
 // HelloWorldStatus defines the observed state of HelloWorld

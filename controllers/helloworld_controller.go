@@ -238,8 +238,18 @@ func (r *HelloWorldReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Therefore, the following code will ensure the Deployment size is the same as defined
 	// via the Size spec of the Custom Resource which we are reconciling.
 	size := helloworld.Spec.Size
-	if *found.Spec.Replicas != size {
+	text := helloworld.Spec.Text
+	foundContainer := &found.Spec.Template.Spec.Containers[0]
+	if *found.Spec.Replicas != size || len(foundContainer.Env) != 1 || foundContainer.Env[0].Value != text {
 		found.Spec.Replicas = &size
+		foundContainer.Env = []corev1.EnvVar{
+			{
+				Name:  "HELLO_TEXT",
+				Value: helloworld.Spec.Text,
+			},
+		}
+		log.Info("Updating Deployment",
+			"Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
 		if err = r.Update(ctx, found); err != nil {
 			log.Error(err, "Failed to update Deployment",
 				"Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
@@ -430,6 +440,12 @@ func (r *HelloWorldReconciler) deploymentForHelloWorld(
 						Image:           image,
 						Name:            "helloworld",
 						ImagePullPolicy: corev1.PullIfNotPresent,
+						Env: []corev1.EnvVar{
+							{
+								Name:  "HELLO_TEXT",
+								Value: helloworld.Spec.Text,
+							},
+						},
 						// Ensure restrictive context for the container
 						// More info: https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted
 						SecurityContext: &corev1.SecurityContext{

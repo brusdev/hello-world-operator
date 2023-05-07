@@ -43,6 +43,8 @@ spec:
                 maximum: 3
                 minimum: 1
                 type: integer
+              text:
+                type: string
             type: object
           status:
             description: HelloWorldStatus defines the observed state of HelloWorld
