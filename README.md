@@ -10,3 +10,16 @@ Install Go https://go.dev/doc/install.
 Install Operator SDK CLI https://sdk.operatorframework.io/docs/installation/.
 
 Install Docker https://docs.docker.com/get-docker/
+
+## Initialize hello-world-operator
+Use the Operator SDK CLI to initialize the hello-world-operator project:
+```
+$ mkdir -p hello-world-operator
+$ cd hello-world-operator
+$ operator-sdk init --domain brus.dev --repo github.com/brusdev/hello-world-operator
+```
+
+To learn about the project directory structure, see
+[Kubebuilder project layout](https://book.kubebuilder.io/cronjob-tutorial/basic-project.html) doc.
+
+The main program for the operator [main.go](./main.go) initializes and runs the Manager.
