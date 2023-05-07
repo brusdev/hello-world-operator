@@ -38,3 +38,104 @@ Excute the controller test using the command:
 ```
 $ make test
 ```
+
+## Configure container image registry
+The Operator SDK CLI init command creates a [Makefile](./Makefile) that define three environment variables for
+container image URLs:
+- IMG for the operator container image URL;
+- IMAGE_TAG_BASE for the container image base URL;
+- BUNDLE_IMG for the bundle container image URL;
+- CATALOG_IMG for the catalog container image URL;
+
+The values of those environment variables must be valid container image URLs. Use a valid container registry domain
+to define a valid container image URL, i.e. `quay.io/brusdev/hello-world-operator`. Create a free
+[Quay.io](https://quay.io/) account to get a container registry domain.
+
+Update the `IMG` value to `$(IMAGE_TAG_BASE):$(VERSION)` and the `IMAGE_TAG_BASE` value using a valid container registry
+domain if the current value is incorrect, i.e. `quay.io/brusdev/hello-world-operator`.
+
+## Build operator container image
+Build the operator container image using the `docker-build` target defined in [Makefile](./Makefile):
+```
+$ make docker-build
+```
+
+## Push operator container image
+Create a new public repository that matches the operator container image URL, i.e. `quay.io/brusdev/hello-world-operator`, to create a new repository in the Quay.io container registry follow the
+[creating a repository guide](https://docs.quay.io/guides/create-repo.html).
+
+Login to the container registry, i.e. to login the Quay.io container registry:
+```
+$ docker login quay.io
+```
+
+Push the operator container image using the `docker-push` target defined in [Makefile](./Makefile):
+```
+$ make docker-push
+```
+
+## Deploy operator
+Login to a Kubernetes cluster or start [minikube](https://kubernetes.io/docs/tasks/tools/#minikube) to run a local Kubernetes:
+```
+$ minikube start
+```
+Install [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) or use minikube kubectl:
+```
+$ alias kubectl="minikube kubectl --"
+```
+Run the following to deploy the operator. This will also install the RBAC manifests from config/rbac.
+```
+$ make deploy
+```
+
+## Access operator metrics
+Create a serice account to access operator metrics:
+```
+$ kubectl create serviceaccount metrics-reader
+$ kubectl create clusterrolebinding metrics-reader --clusterrole=hello-world-operator-metrics-reader --serviceaccount=$(kubectl get serviceaccount metrics-reader -o jsonpath='{.metadata.namespace}'):metrics-reader
+```
+Test the access to metrics using busybox:
+```
+$ kubectl run -it --rm busybox --image=busybox --restart=Never --overrides='{"spec":{"serviceAccount":"metrics-reader"}}'
+If you don't see a command prompt, try pressing enter.
+/ #
+/ #
+/ # wget -O - --header="Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" --no-check-certificate https://hello-world-operator-controller-manager-metrics-service.hello-world-operator-system:8443/metrics
+```
+
+## Create HelloWorld CR
+Create a HelloWorld CR using the kubectl:
+```
+$ kubectl apply -f - <<EOF
+apiVersion: examples.brus.dev/v1alpha1
+kind: HelloWorld
+metadata:
+  name: helloworld-sample
+spec:
+  size: 3
+EOF
+```
+Ensure that the helloworld operator creates the deployment for the HelloWorld CR with the correct size:
+```
+$ kubectl get deployment
+NAME                READY   UP-TO-DATE   AVAILABLE   AGE
+helloworld-sample   3/3     3            3           1m
+```
+Check the pods and CR status to confirm the status is updated with the helloworld pod names:
+```
+$ kubectl get pods
+NAME                                  READY     STATUS    RESTARTS   AGE
+helloworld-sample-6fd7c98d8-7dqdr     1/1       Running   0          1m
+helloworld-sample-6fd7c98d8-g5k7v     1/1       Running   0          1m
+helloworld-sample-6fd7c98d8-m7vn7     1/1       Running   0          1m
+```
+Change the `spec.size` field in the HelloWorld CR from 3 to 1:
+```
+kubectl patch helloworld helloworld-sample -p '{"spec":{"size": 1}}' --type=merge
+```
+Confirm that the operator changes the deployment size:
+```
+$ kubectl get deployment
+NAME                READY   UP-TO-DATE   AVAILABLE   AGE
+helloworld-sample   1/1     1            1           1m
+```
