@@ -139,3 +139,49 @@ $ kubectl get deployment
 NAME                READY   UP-TO-DATE   AVAILABLE   AGE
 helloworld-sample   1/1     1            1           1m
 ```
+
+## Expose helloworld pods
+Expose helloworld pods with a [service](https://kubernetes.io/docs/concepts/services-networking/service/). Improve the
+helloworld controller to create a service for avery helloworld deployment:
+```
+// Define a new service
+svc := &corev1.Service{
+    ObjectMeta: metav1.ObjectMeta{
+        Name:      helloworld.Name,
+        Namespace: helloworld.Namespace,
+    },
+    Spec: corev1.ServiceSpec{
+        Selector: labelsForHelloWorld(helloworld.Name),
+        Ports: []corev1.ServicePort{
+            {
+                Protocol:   "TCP",
+                Port:       8080,
+                TargetPort: intstr.FromInt(8080),
+            },
+        },
+    },
+}
+```
+Create a HelloWorld CR using the kubectl:
+```
+$ kubectl apply -f - <<EOF
+apiVersion: examples.brus.dev/v1alpha1
+kind: HelloWorld
+metadata:
+  name: helloworld-sample
+spec:
+  size: 1
+EOF
+```
+Ensure that the helloworld operator creates the service for the HelloWorld deployment:
+```
+$ kubectl get service
+NAME                TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)    AGE
+helloworld-sample   ClusterIP   10.98.63.22   <none>        8080/TCP   1m
+```
+Test the deployment and the service using busybox:
+```
+$ kubectl run -it --rm busybox --image=busybox --restart=Never --command -- wget -O - helloworld-sample:8080
+Hello, World!
+pod "busybox" deleted
+```
