@@ -72,6 +72,9 @@ spec:
         - --leader-elect
         image: controller:latest
         name: manager
+        env:
+        - name: HELLOWORLD_IMAGE
+          value: quay.io/brusdev/hello-world-http:latest
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

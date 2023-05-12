@@ -6,8 +6,26 @@ domain: brus.dev
 layout:
 - go.kubebuilder.io/v3
 plugins:
+  deploy-image.go.kubebuilder.io/v1-alpha:
+    resources:
+    - domain: brus.dev
+      group: examples
+      kind: HelloWorld
+      options:
+        image: quay.io/brusdev/hello-world-http:latest
+      version: v1alpha1
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: hello-world-operator
 repo: github.com/brusdev/hello-world-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: brus.dev
+  group: examples
+  kind: HelloWorld
+  path: github.com/brusdev/hello-world-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"
